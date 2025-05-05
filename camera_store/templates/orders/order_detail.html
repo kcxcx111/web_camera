@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block title %}Order #{{ order.id }} | Camera Store{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Order #{{ order.id }}</h2>
+    <a href="{% url 'users:order_history' %}" class="btn btn-outline-primary">
+        <i class="bi bi-arrow-left"></i> Back to Order History
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Order Items</h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ item.product.get_absolute_url }}">{{ item.product.name }}</a>
+                                    </td>
+                                    <td>${{ item.price }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="text-end">${{ item.get_cost }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="3">Subtotal</th>
+                                <th class="text-end">${{ order.get_total_cost }}</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3">Shipping</th>
+                                <th class="text-end">Free</th>
+                            </tr>
+                            <tr>
+                                <th colspan="3">Total</th>
+                                <th class="text-end">${{ order.get_total_cost }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Order Information</h4>
+            </div>
+            <div class="card-body">
+                <p>
+                    <strong>Order Date:</strong><br>
+                    {{ order.created|date:"F j, Y, g:i a" }}
+                </p>
+                <p>
+                    <strong>Order Status:</strong><br>
+                    {% if order.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif order.status == 'paid' %}
+                        <span class="badge bg-info">Paid</span>
+                    {% elif order.status == 'shipped' %}
+                        <span class="badge bg-primary">Shipped</span>
+                    {% elif order.status == 'delivered' %}
+                        <span class="badge bg-success">Delivered</span>
+                    {% elif order.status == 'cancelled' %}
+                        <span class="badge bg-danger">Cancelled</span>
+                    {% endif %}
+                </p>
+                {% if order.note %}
+                <p>
+                    <strong>Order Notes:</strong><br>
+                    {{ order.note }}
+                </p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4 class="mb-0">Shipping Address</h4>
+            </div>
+            <div class="card-body">
+                <address>
+                    <strong>{{ order.first_name }} {{ order.last_name }}</strong><br>
+                    {{ order.address }}<br>
+                    {{ order.city }}, {{ order.postal_code }}<br>
+                    {{ order.country }}<br>
+                    <abbr title="Phone">P:</abbr> {{ order.phone }}<br>
+                    {{ order.email }}
+                </address>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

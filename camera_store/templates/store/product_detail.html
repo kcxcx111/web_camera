@@ -1,0 +1,434 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ product.name }} | HK Camera{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add CSS for hover overlay on related products
+    $(document).ready(function() {
+        $('.hover-overlay').css({
+            'opacity': '0',
+            'background': 'rgba(0, 0, 0, 0.3)',
+            'transition': 'opacity 0.3s ease'
+        });
+        
+        $('.product-card').hover(
+            function() {
+                $(this).find('.hover-overlay').css('opacity', '1');
+            },
+            function() {
+                $(this).find('.hover-overlay').css('opacity', '0');
+            }
+        );
+        
+        // Thumbnail image click handler
+        $('.thumbnail-container img').click(function() {
+            const newSrc = $(this).attr('src');
+            $('.main-image-container img').attr('src', newSrc);
+            
+            $('.thumbnail-container').addClass('opacity-75');
+            $(this).parent().removeClass('opacity-75');
+        });
+    });
+    
+</script>
+
+<script>
+    // Highlight search terms if coming from search results
+    $(document).ready(function() {
+        // Get search query from URL if it exists
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('highlight');
+        
+        if (searchQuery) {
+            // Function to highlight text
+            function highlightText(container, query) {
+                if (!query || query.length < 2) return;
+                
+                const words = query.split(' ').filter(word => word.length > 1);
+                
+                // Find all text nodes in the container
+                const walk = document.createTreeWalker(
+                    container, 
+                    NodeFilter.SHOW_TEXT,
+                    null,
+                    false
+                );
+                
+                const nodesToReplace = [];
+                let node;
+                
+                // Collect all text nodes
+                while(node = walk.nextNode()) {
+                    // Skip if parent is already a highlight
+                    if (node.parentNode.classList && node.parentNode.classList.contains('highlight')) {
+                        continue;
+                    }
+                    
+                    // Skip script and style tags
+                    if (node.parentNode.tagName === 'SCRIPT' || node.parentNode.tagName === 'STYLE') {
+                        continue;
+                    }
+                    
+                    nodesToReplace.push(node);
+                }
+                
+                // Process each text node
+                nodesToReplace.forEach(textNode => {
+                    let content = textNode.nodeValue;
+                    let highlighted = false;
+                    
+                    words.forEach(word => {
+                        if (word.length < 2) return;
+                        
+                        const regex = new RegExp('(' + word + ')', 'gi');
+                        if (regex.test(content)) {
+                            highlighted = true;
+                            content = content.replace(regex, '<span class="highlight">$1</span>');
+                        }
+                    });
+                    
+                    if (highlighted) {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = content;
+                        
+                        const fragment = document.createDocumentFragment();
+                        while (tempDiv.firstChild) {
+                            fragment.appendChild(tempDiv.firstChild);
+                        }
+                        
+                        textNode.parentNode.replaceChild(fragment, textNode);
+                    }
+                });
+            }
+            
+            // Highlight product name, description, and specifications
+            highlightText(document.querySelector('h1.mb-3'), searchQuery); // Product name
+            highlightText(document.querySelector('.card-body p'), searchQuery); // Description
+            
+            // Highlight specifications
+            const specTable = document.querySelector('.table-striped');
+            if (specTable) {
+                highlightText(specTable, searchQuery);
+            }
+        }
+    });
+    
+    // Make sure these functions are accessible
+    console.log('On page load - updateCartBadge exists:', typeof updateCartBadge === 'function');
+    console.log('On page load - showNotification exists:', typeof showNotification === 'function');
+    
+    // Define fallback functions if needed
+    if (typeof updateCartBadge !== 'function') {
+        function updateCartBadge(total) {
+            console.log('Using fallback updateCartBadge function');
+            const cartBadge = $('.cart-badge');
+            if (total > 0) {
+                if (cartBadge.length) {
+                    cartBadge.text(total);
+                } else {
+                    $('.cart-link').append('<span class="badge bg-danger cart-badge">' + total + '</span>');
+                }
+            } else {
+                cartBadge.remove();
+            }
+            // Force page reload to ensure cart is updated
+            window.location.reload();
+        }
+    }
+    
+    if (typeof showNotification !== 'function') {
+        function showNotification(message, type = 'success') {
+            console.log('Using fallback showNotification function');
+            const notification = $('<div class="alert alert-' + type + ' notification">' + 
+                                  message + 
+                                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                                  '</div>');
+            
+            // Add notification to the page
+            $('main.container').prepend(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                notification.alert('close');
+            }, 3000);
+        }
+    }
+    
+    $(document).ready(function() {
+        // Add to cart AJAX
+        $('#add-to-cart-form').on('submit', function(e) {
+            e.preventDefault();
+            
+            const quantity = $('#product-quantity').val();
+            console.log('Adding to cart, quantity:', quantity);
+            
+            // Check if functions exist again within document ready
+            console.log('In submit handler - updateCartBadge exists:', typeof updateCartBadge === 'function');
+            console.log('In submit handler - showNotification exists:', typeof showNotification === 'function');
+            
+            // Ensure CSRF token is included in AJAX requests
+            const csrftoken = $('input[name="csrfmiddlewaretoken"]').val();
+            console.log('CSRF token available:', !!csrftoken);
+            
+            $.ajax({
+                url: "{% url 'cart:cart_add' product.id %}",
+                type: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrftoken
+                },
+                data: {
+                    'quantity': quantity,
+                    'override': 'False',
+                    'csrfmiddlewaretoken': csrftoken
+                },
+                success: function(data) {
+                    console.log('AJAX success, response:', data);
+                    console.log('Cart total:', data.cart_total);
+                    console.log('Message:', data.message);
+                    
+                    // Show an alert before reloading
+                    alert(data.message);
+                    
+                    // Force page reload to ensure cart is updated
+                    window.location.reload();
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX error:', status, error);
+                    console.log('Response:', xhr.responseText);
+                    
+                    showNotification('Error adding product to cart', 'danger');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Breadcrumb -->
+    <div class="col-12 mb-2">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ product.category.get_absolute_url }}" class="text-decoration-none">{{ product.category.name }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ product.name }}</li>
+            </ol>
+        </nav>
+    </div>
+
+    <!-- Product Images -->
+    <div class="col-lg-6">
+        <div class="product-gallery">
+            <!-- Main Image -->
+            <div class="main-image-container mb-3 rounded overflow-hidden shadow-sm">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" class="w-100 product-image zoom-trigger" alt="{{ product.name }}" style="height: 450px; object-fit: cover;">
+                {% else %}
+                    <img src="https://via.placeholder.com/800x600" class="w-100" alt="Placeholder" style="height: 450px; object-fit: cover;">
+                {% endif %}
+            </div>
+            
+            <!-- Thumbnail Images -->
+            {% if product.images.exists %}
+                <div class="row g-2">
+                    <div class="col-3">
+                        {% if product.image %}
+                            <div class="thumbnail-container rounded overflow-hidden border opacity-75">
+                                <img src="{{ product.image.url }}" class="w-100 product-image zoom-trigger" alt="{{ product.name }}" style="height: 80px; object-fit: cover; cursor: pointer;">
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% for img in product.images.all %}
+                        <div class="col-3">
+                            <div class="thumbnail-container rounded overflow-hidden border opacity-75">
+                                <img src="{{ img.image.url }}" class="w-100 product-image zoom-trigger" alt="Additional image of {{ product.name }}" style="height: 80px; object-fit: cover; cursor: pointer;">
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Product Details -->
+    <div class="col-lg-6">
+        <div class="product-details">
+            <h1 class="product-title mb-2">{{ product.name }}</h1>
+            <div class="d-flex align-items-center mb-3">
+                <span class="badge rounded-pill bg-light text-dark me-2">{{ product.category.name }}</span>
+                {% if product.stock > 0 %}
+                    <span class="badge rounded-pill bg-success">In Stock</span>
+                {% else %}
+                    <span class="badge rounded-pill bg-danger">Out of Stock</span>
+                {% endif %}
+            </div>
+            
+            <div class="product-price mb-4">
+                <h2 class="fw-bold">${{ product.price }}</h2>
+            </div>
+            
+            <!-- Short Description -->
+            <div class="product-short-desc mb-4">
+                <p>{{ product.description|linebreaks|truncatewords:50 }}</p>
+            </div>
+            
+            {% if product.stock > 0 %}
+                <div class="product-actions mb-4">
+                    <form id="add-to-cart-form" class="d-flex align-items-center flex-wrap">
+                        {% csrf_token %}
+                        <div class="quantity-selector me-3 mb-3">
+                            <div class="input-group" style="width: 140px;">
+                                <span class="input-group-text bg-light border-end-0">Qty</span>
+                                <select name="quantity" class="form-select" id="product-quantity">
+                                    {% for i in "12345"|make_list %}
+                                        <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                    {% endfor %}
+                                </select>
+                                <input type="hidden" name="override" value="False">
+                            </div>
+                        </div>
+                        <div class="d-grid mb-3" style="min-width: 200px;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-bag-plus me-2"></i>Add to Cart
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="stock-info mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <span>{{ product.stock }} items in stock - ready to ship</span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="alert alert-warning mb-4">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    This product is currently out of stock. Please check back later or contact customer service for more information.
+                </div>
+            {% endif %}
+            
+            <!-- Product Features -->
+            <div class="product-features mb-4">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-truck me-2 fs-5"></i>
+                            <div>
+                                <p class="mb-0 fw-medium">Free Shipping</p>
+                                <p class="text-muted mb-0 small">On orders over $150</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="d-flex align-items-center">
+                            <i class="bi bi-shield-check me-2 fs-5"></i>
+                            <div>
+                                <p class="mb-0 fw-medium">2 Year Warranty</p>
+                                <p class="text-muted mb-0 small">Authorized retailer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Product Sharing -->
+            <div class="product-sharing mb-4 border-top pt-4">
+                <p class="fw-medium mb-2">Share this product</p>
+                <div class="social-share">
+                    <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-twitter"></i></a>
+                    <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-pinterest"></i></a>
+                    <a href="#" class="btn btn-outline-dark btn-sm"><i class="bi bi-envelope"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Product Tabs -->
+    <div class="col-12 mt-5">
+        <ul class="nav nav-tabs" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab" aria-controls="description" aria-selected="true">Description</button>
+            </li>
+            {% if product.specifications.exists %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="specifications-tab" data-bs-toggle="tab" data-bs-target="#specifications" type="button" role="tab" aria-controls="specifications" aria-selected="false">Specifications</button>
+            </li>
+            {% endif %}
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="shipping-tab" data-bs-toggle="tab" data-bs-target="#shipping" type="button" role="tab" aria-controls="shipping" aria-selected="false">Shipping & Returns</button>
+            </li>
+        </ul>
+        <div class="tab-content border-start border-end border-bottom p-4" id="productTabsContent">
+            <div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
+                {{ product.description|linebreaks }}
+            </div>
+            {% if product.specifications.exists %}
+            <div class="tab-pane fade" id="specifications" role="tabpanel" aria-labelledby="specifications-tab">
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <tbody>
+                            {% for spec in product.specifications.all %}
+                                <tr>
+                                    <th class="bg-light" style="width: 30%">{{ spec.name }}</th>
+                                    <td>{{ spec.value }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+            <div class="tab-pane fade" id="shipping" role="tabpanel" aria-labelledby="shipping-tab">
+                <h5>Shipping Information</h5>
+                <p>We offer free shipping on orders over $150 within Hong Kong. Standard shipping typically takes 1-3 business days.</p>
+                
+                <h5 class="mt-4">Return Policy</h5>
+                <p>If you're not completely satisfied with your purchase, you can return it within 14 days for a full refund or exchange. Please note that items must be in their original condition with all packaging intact.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Related Products Section -->
+{% if related_products %}
+    <section class="related-products mt-5 pt-3">
+        <div class="section-header">
+            <h2>You May Also Like</h2>
+        </div>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            {% for product in related_products %}
+                <div class="col">
+                    <div class="card h-100 product-card">
+                        <div class="card-img-container position-relative">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" class="card-img-top product-image zoom-trigger" alt="{{ product.name }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="Placeholder">
+                            {% endif %}
+                            <div class="hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center">
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-light btn-sm mx-1">
+                                    <i class="bi bi-eye"></i> Quick View
+                                </a>
+                            </div>
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <p class="text-muted small mb-1">{{ product.category.name }}</p>
+                            <h5 class="card-title">{{ product.name }}</h5>
+                            
+                            <div class="d-flex justify-content-between align-items-center mt-auto">
+                                <p class="card-text fw-bold mb-0">${{ product.price }}</p>
+                                <a href="{{ product.get_absolute_url }}" class="btn btn-primary btn-sm">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+{% endblock %}

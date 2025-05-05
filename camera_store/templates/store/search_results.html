@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block title %}Search: {{ query }} | Camera Store{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Function to highlight matching text
+        function highlightText(text, query) {
+            if (!query || query.length < 1) return text;
+            
+            const words = query.split(' ').filter(word => word.length > 0);
+            let highlightedText = text;
+            
+            words.forEach(word => {
+                const regex = new RegExp('(' + word + ')', 'gi');
+                highlightedText = highlightedText.replace(regex, '<span class="highlight">$1</span>');
+            });
+            
+            return highlightedText;
+        }
+        
+        // Get the search query
+        const query = "{{ query }}";
+        
+        // Highlight product names
+        $('.product-name').each(function() {
+            const originalText = $(this).text();
+            $(this).html(highlightText(originalText, query));
+        });
+        
+        // Highlight category names
+        $('.product-category').each(function() {
+            const originalText = $(this).text();
+            $(this).html(highlightText(originalText, query));
+        });
+        
+        // Highlight specifications
+        $('.badge').each(function() {
+            const originalText = $(this).text();
+            $(this).html(highlightText(originalText, query));
+        });
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'store:product_list' %}">Home</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Search results for "{{ query }}"</li>
+            </ol>
+        </nav>
+        
+        <h2 class="mb-4">Search Results for "{{ query }}"</h2>
+        
+        {% if products %}
+            <p>Found {{ products.count }} product{{ products.count|pluralize }} matching your search.</p>
+            
+            <div class="row">
+                {% for product in products %}
+                    <div class="col-md-3 mb-4">
+                        <div class="card h-100">
+                            {% if product.image %}
+                                <img src="{{ product.image.url }}" class="card-img-top product-image zoom-trigger" alt="{{ product.name }}">
+                            {% else %}
+                                <img src="https://via.placeholder.com/150" class="card-img-top" alt="Placeholder">
+                            {% endif %}
+                            <div class="card-body">
+                                <h5 class="card-title product-name">{{ product.name }}</h5>
+                                <p class="card-text text-muted product-category">{{ product.category.name }}</p>
+                                
+                                <!-- Product Specifications -->
+                                {% if product.specifications.all %}
+                                <div class="specs-container mb-2">
+                                    {% for spec in product.specifications.all|slice:":2" %}
+                                    <span class="badge bg-light text-dark mb-1">{{ spec.name }}: {{ spec.value }}</span>
+                                    {% endfor %}
+                                </div>
+                                {% endif %}
+                                
+                                <p class="card-text text-danger fw-bold">${{ product.price }}</p>
+                                <a href="{{ product.get_absolute_url }}?highlight={{ query|urlencode }}" class="btn btn-primary btn-sm">View Details</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">No products found matching "{{ query }}".</p>
+            </div>
+            
+            <div class="mt-4">
+                <h4>Suggestions:</h4>
+                <ul>
+                    <li>Check your spelling</li>
+                    <li>Try more general keywords</li>
+                    <li>Try different keywords</li>
+                    <li>Browse our <a href="{% url 'store:product_list' %}">product categories</a></li>
+                </ul>
+            </div>
+        {% endif %}
+        
+        <div class="mt-4">
+            <a href="{% url 'store:product_list' %}" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> Back to Products
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

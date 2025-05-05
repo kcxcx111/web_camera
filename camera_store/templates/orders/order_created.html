@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Order Confirmed | Camera Store{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <div class="mb-4">
+                    <span class="display-1 text-success">
+                        <i class="bi bi-check-circle"></i>
+                    </span>
+                </div>
+                <h2 class="mb-3">Thank You For Your Order!</h2>
+                <p class="lead mb-4">Your order has been successfully placed.</p>
+                <p class="mb-1">Your order number is: <strong>#{{ order.id }}</strong></p>
+                <p class="mb-4">We'll send a confirmation email to <strong>{{ order.email }}</strong></p>
+                
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="{% url 'orders:order_detail' order.id %}" class="btn btn-primary">View Order Details</a>
+                    <a href="{% url 'store:product_list' %}" class="btn btn-outline-secondary">Continue Shopping</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

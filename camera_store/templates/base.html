@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}HK Camera Store{% endblock %}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        /* Product image zoom styling */
+        .product-image {
+            cursor: zoom-in;
+            transition: transform 0.3s;
+        }
+        
+        .product-image:hover {
+            transform: scale(1.03);
+        }
+        
+        .zoom-modal .modal-dialog {
+            max-width: 800px;
+            margin: 30px auto;
+        }
+        
+        .zoom-modal .modal-content {
+            background-color: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        
+        .zoom-modal .modal-body {
+            padding: 0;
+            text-align: center;
+        }
+        
+        .zoom-modal img {
+            max-width: 100%;
+            max-height: 80vh;
+            object-fit: contain;
+        }
+        
+        .zoom-modal .close-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 30px;
+            opacity: 0.8;
+            text-shadow: 0 0 3px rgba(0,0,0,0.5);
+            z-index: 1050;
+        }
+        
+        .zoom-modal .close-btn:hover {
+            opacity: 1;
+        }
+        
+        /* Live search results dropdown styling */
+        .search-results-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%; 
+            max-height: 70vh; /* Increased from 400px to 70% of viewport height */
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 1050; 
+            display: none;
+        }
+
+        #search-form{
+            position: relative;
+            width: 100%; /* Ensure the form takes full width in its container */
+        }
+        
+        .search-results-dropdown.show {
+            display: block;
+        }
+        
+        .search-result-item {
+            display: flex;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background-color 0.2s;
+        }
+        
+        .search-result-item:hover {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        
+        .search-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .search-result-image {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+        
+        /* Mobile optimization for search results */
+        @media (max-width: 768px) {
+            .search-results-dropdown {
+                max-height: 60vh;
+            }
+            
+            .search-result-item {
+                padding: 10px;
+            }
+            
+            .search-result-image {
+                width: 40px;
+                height: 40px;
+                margin-right: 8px;
+            }
+        }
+        
+        .search-result-details {
+            flex: 1;
+        }
+        
+        .search-result-name {
+            font-weight: bold;
+            margin-bottom: 2px;
+        }
+        
+        .search-result-category {
+            font-size: 0.8rem;
+            color: #6c757d;
+            margin-bottom: 2px;
+        }
+        
+        .search-result-price {
+            font-weight: bold;
+            color: #dc3545;
+        }
+        
+        .search-wrapper {
+            position: relative;
+        }
+        
+        .no-results {
+            padding: 15px;
+            text-align: center;
+            color: #6c757d;
+        }
+        
+        .search-result-specs {
+            font-size: 0.75rem;
+            margin-bottom: 4px;
+            line-height: 1.2;
+        }
+        
+        .search-result-specs small {
+            display: inline-block;
+            background-color: #f8f9fa;
+            padding: 1px 4px;
+            border-radius: 3px;
+            margin-right: 4px;
+            margin-bottom: 2px;
+        }
+        
+        /* Highlight matching text in search results */
+        .highlight {
+            background-color: #fff3cd;
+            padding: 0 2px;
+            border-radius: 2px;
+        }
+        
+        /* Specification badges styling */
+        .specs-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        
+        .specs-container .badge {
+            font-size: 0.7rem;
+            font-weight: normal;
+            border: 1px solid #dee2e6;
+            display: inline-block;
+            white-space: normal;
+            text-align: left;
+            line-height: 1.2;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <header class="header-main">
+        <!-- Announcement bar could go here -->
+        <div class="announcement-bar bg-danger py-2 text-center d-none d-md-block">
+            <div class="container">
+                <p class="text-white mb-0"><small>Free shipping on orders over $150 | Fast delivery across Hong Kong</small></p>
+            </div>
+        </div>
+        
+        <nav class="navbar navbar-expand-lg navbar-light bg-white py-3 shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="{% url 'store:product_list' %}">
+                    <span class="brand-text">HK CAMERA</span>
+                </a>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav me-auto">
+                        <li class="nav-item">
+                            <a class="nav-link px-3" href="{% url 'store:product_list' %}">Home</a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle px-3" href="#" role="button" data-bs-toggle="dropdown">
+                                Categories
+                            </a>
+                            <ul class="dropdown-menu border-0 shadow">
+                                {% for category in categories %}
+                                <li><a class="dropdown-item py-2" href="{{ category.get_absolute_url }}">{{ category.name }}</a></li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                    </ul>
+                    
+                    <!-- Search Form with Live Results -->
+                    <div class="search-wrapper flex-grow-1 mx-lg-4 position-relative">
+                        <form class="d-flex w-100" action="{% url 'store:search_products' %}" method="get" id="search-form">
+                            <div class="input-group">
+                                <input class="form-control search-box border-end-0 rounded-pill-start" type="search" name="q" id="search-input" placeholder="Search for cameras, lenses..." aria-label="Search">
+                                <button class="btn btn-danger rounded-pill-end px-3" type="submit">
+                                    <i class="bi bi-search"></i>
+                                </button>
+                            </div>
+                            <div class="search-results-dropdown shadow" id="search-results"></div>
+                        </form>
+                    </div>
+                    
+                    <!-- Right icons -->
+                    <div class="d-flex align-items-center">
+                        <!-- Cart -->
+                        <div class="d-flex align-items-center me-3">
+                            <a href="{% url 'cart:cart_detail' %}" class="nav-icon position-relative text-decoration-none">
+                                <i class="bi bi-bag fs-4"></i>
+                                {% with total_items=cart|length %}
+                                    {% if total_items > 0 %}
+                                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger cart-badge">
+                                            {{ total_items }}
+                                        </span>
+                                    {% endif %}
+                                {% endwith %}
+                            </a>
+                        </div>
+                        
+                        <!-- User Menu -->
+                        <div class="user-menu">
+                            {% if request.user.is_authenticated %}
+                            <div class="dropdown">
+                                <a class="nav-icon dropdown-toggle text-decoration-none" href="#" role="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-person-circle fs-4"></i>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                                    <li class="dropdown-header">Hello, {{ request.user.username }}</li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'users:profile' %}">
+                                        <i class="bi bi-person me-2"></i>My Profile
+                                    </a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'users:order_history' %}">
+                                        <i class="bi bi-clock-history me-2"></i>Order History
+                                    </a></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'cart:view_saved_carts' %}">
+                                        <i class="bi bi-bookmarks me-2"></i>Saved Carts
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item py-2" href="{% url 'users:logout' %}">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    </a></li>
+                                </ul>
+                            </div>
+                            {% else %}
+                            <div class="d-flex">
+                                <a class="nav-link me-3" href="{% url 'users:login' %}">Login</a>
+                                <a class="nav-link" href="{% url 'users:register' %}">Register</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+    
+    <main class="container my-4">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content %}{% endblock content %}
+    </main>
+    
+    <footer class="footer mt-5 pt-5">
+        <div class="container">
+            <!-- Top footer section with main info -->
+            <div class="row g-4 pb-4 mb-4 border-bottom">
+                <div class="col-lg-3 col-md-6">
+                    <div class="footer-about">
+                        <h5 class="mb-4 fw-bold">HK CAMERA</h5>
+                        <p class="mb-4">Your premium destination for cameras and photography equipment in Hong Kong. Quality brands, expert service.</p>
+                        <div class="social-links">
+                            <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-facebook"></i></a>
+                            <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-instagram"></i></a>
+                            <a href="#" class="btn btn-outline-dark btn-sm me-2"><i class="bi bi-twitter"></i></a>
+                            <a href="#" class="btn btn-outline-dark btn-sm"><i class="bi bi-youtube"></i></a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="mb-4 fw-bold">Quick Links</h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="{% url 'store:product_list' %}" class="text-decoration-none text-dark">Home</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">About Us</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Our Stores</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Blog</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="mb-4 fw-bold">Customer Service</h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Contact Us</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">FAQs</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Shipping & Returns</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-dark">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <h5 class="mb-4 fw-bold">Contact</h5>
+                    <div class="contact-info">
+                        <p class="mb-2"><i class="bi bi-geo-alt me-2"></i>18 Che Kung Miu Rd, Tai Wai, Hong Kong</p>
+                        <p class="mb-2"><i class="bi bi-telephone me-2"></i><a href="tel:+85288888888" class="text-decoration-none text-dark">+852 8888 8888</a></p>
+                        <p class="mb-2"><i class="bi bi-envelope me-2"></i><a href="mailto:info@hkcamerastore.com" class="text-decoration-none text-dark">info@ast20201.com</a></p>
+                        <p class="mb-2"><i class="bi bi-clock me-2"></i>Mon-Sat: 10:00 AM - 8:00 PM</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bottom footer section with payment methods and copyright -->
+            <div class="row py-3">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <p class="mb-0">&copy; {% now "Y" %} HK Camera Store. All rights reserved.</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <div class="payment-methods">
+                        <i class="bi bi-credit-card me-2 fs-5"></i>
+                        <i class="bi bi-paypal me-2 fs-5"></i>
+                        <i class="bi bi-wallet2 me-2 fs-5"></i>
+                        <i class="bi bi-bank fs-5"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Live Search Functionality -->
+    <script>
+        $(document).ready(function() {
+            const searchInput = $('#search-input');
+            const searchResults = $('#search-results');
+            const searchForm = $('#search-form');
+            let searchTimeout;
+            
+            // Search history management
+            const MAX_SEARCH_HISTORY = 5;
+            
+            function getSearchHistory() {
+                const history = localStorage.getItem('searchHistory');
+                return history ? JSON.parse(history) : [];
+            }
+            
+            function addToSearchHistory(query) {
+                if (!query || query.length < 2) return;
+                
+                let history = getSearchHistory();
+                
+                // Remove if already exists (to move it to the top)
+                history = history.filter(item => item.toLowerCase() !== query.toLowerCase());
+                
+                // Add to the beginning
+                history.unshift(query);
+                
+                // Limit to MAX_SEARCH_HISTORY items
+                if (history.length > MAX_SEARCH_HISTORY) {
+                    history = history.slice(0, MAX_SEARCH_HISTORY);
+                }
+                
+                localStorage.setItem('searchHistory', JSON.stringify(history));
+            }
+            
+            function displaySearchHistory() {
+                const history = getSearchHistory();
+                if (history.length === 0) return;
+                
+                searchResults.empty();
+                
+                searchResults.append(`
+                    <div class="d-flex justify-content-between align-items-center p-2 bg-light">
+                        <span class="text-muted small">Recent Searches:</span>
+                        <button type="button" class="btn btn-sm text-muted" id="clear-history">
+                            <i class="bi bi-trash"></i> Clear
+                        </button>
+                    </div>
+                `);
+                
+                history.forEach(function(query) {
+                    const historyItem = `
+                        <a href="{% url 'store:search_products' %}?q=${encodeURIComponent(query)}" class="text-decoration-none text-dark">
+                            <div class="search-result-item">
+                                <div class="d-flex align-items-center">
+                                    <i class="bi bi-clock-history me-2"></i>
+                                    <div>${query}</div>
+                                </div>
+                            </div>
+                        </a>
+                    `;
+                    searchResults.append(historyItem);
+                });
+                
+                searchResults.addClass('show');
+            }
+            
+            // Function to fetch search results
+            function fetchSearchResults(query) {
+                if (query.length < 1) {
+                    displaySearchHistory();
+                    return;
+                }
+                
+                $.ajax({
+                    url: '{% url "store:search_products_api" %}',
+                    data: { q: query },
+                    success: function(data) {
+                        displaySearchResults(data.results);
+                    },
+                    error: function(error) {
+                        console.error('Error fetching search results:', error);
+                    }
+                });
+            }
+            
+            // Function to highlight matching text
+            function highlightText(text, query) {
+                if (!query || query.length < 1) return text;
+                
+                const words = query.split(' ').filter(word => word.length > 0);
+                let highlightedText = text;
+                
+                words.forEach(word => {
+                    const regex = new RegExp('(' + word + ')', 'gi');
+                    highlightedText = highlightedText.replace(regex, '<span class="highlight">$1</span>');
+                });
+                
+                return highlightedText;
+            }
+            
+            // Function to display search results
+            function displaySearchResults(results) {
+                searchResults.empty();
+                const query = searchInput.val().trim();
+                
+                if (results.length === 0) {
+                    searchResults.append('<div class="no-results">No products found</div>');
+                } else {
+                    results.forEach(function(product) {
+                        const imageUrl = product.image || 'https://via.placeholder.com/50';
+                        
+                        // Highlight matching text
+                        const highlightedName = highlightText(product.name, query);
+                        const highlightedCategory = highlightText(product.category, query);
+                        
+                        // Create specs HTML if specs exist
+                        let specsHtml = '';
+                        if (product.specs && product.specs.length > 0) {
+                            specsHtml = '<div class="search-result-specs">' + 
+                                product.specs.map(spec => `<small class="text-muted">${highlightText(spec, query)}</small>`).join('<br>') + 
+                                '</div>';
+                        }
+                        
+                        const resultItem = `
+                            <a href="${product.url}?highlight=${encodeURIComponent(query)}" class="text-decoration-none text-dark">
+                                <div class="search-result-item">
+                                    <img src="${imageUrl}" alt="${product.name}" class="search-result-image">
+                                    <div class="search-result-details">
+                                        <div class="search-result-name">${highlightedName}</div>
+                                        <div class="search-result-category">${highlightedCategory}</div>
+                                        ${specsHtml}
+                                        <div class="search-result-price">$${product.price}</div>
+                                    </div>
+                                </div>
+                            </a>
+                        `;
+                        searchResults.append(resultItem);
+                    });
+                }
+                
+                searchResults.addClass('show');
+            }
+            
+            // Handle input changes with debounce
+            searchInput.on('input', function() {
+                const query = $(this).val().trim();
+                
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    fetchSearchResults(query);
+                }, 300); // 300ms debounce
+            });
+            
+            // Hide results when clicking outside
+            $(document).on('click', function(event) {
+                if (!$(event.target).closest('.search-wrapper').length) {
+                    searchResults.removeClass('show');
+                }
+            });
+            
+            // Show results or history when input is focused
+            searchInput.on('focus', function() {
+                const query = $(this).val().trim();
+                if (query.length >= 2) {
+                    fetchSearchResults(query);
+                } else {
+                    displaySearchHistory();
+                }
+            });
+            
+            // Add search to history when form is submitted
+            searchForm.on('submit', function() {
+                const query = searchInput.val().trim();
+                if (query.length >= 2) {
+                    addToSearchHistory(query);
+                }
+            });
+            
+            // Prevent form submission when selecting a result
+            searchResults.on('click', 'a', function(e) {
+                e.preventDefault();
+                window.location.href = $(this).attr('href');
+            });
+            
+            // Clear search history
+            searchResults.on('click', '#clear-history', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                localStorage.removeItem('searchHistory');
+                searchResults.removeClass('show');
+            });
+        });
+    </script>
+    
+    <!-- Cart AJAX functionality -->
+    <script>
+        // Function to update cart badge - moved to global scope
+        function updateCartBadge(total) {
+            const cartBadge = $('.cart-badge');
+            if (total > 0) {
+                if (cartBadge.length) {
+                    cartBadge.text(total);
+                } else {
+                    $('.cart-link').append('<span class="badge bg-danger cart-badge">' + total + '</span>');
+                }
+            } else {
+                cartBadge.remove();
+            }
+        }
+        
+        // Function to show notification - moved to global scope
+        function showNotification(message, type = 'success') {
+            const notification = $('<div class="alert alert-' + type + ' notification">' + 
+                                  message + 
+                                  '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>' +
+                                  '</div>');
+            
+            // Add notification to the page
+            $('main.container').prepend(notification);
+            
+            // Auto-remove after 3 seconds
+            setTimeout(function() {
+                notification.alert('close');
+            }, 3000);
+        }
+        
+        $(document).ready(function() {
+            // Global AJAX setup to include CSRF token
+            $.ajaxSetup({
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': $('input[name="csrfmiddlewaretoken"]').val()
+                }
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+    
+    <!-- Image Zoom Functionality -->
+    <script>
+        $(document).ready(function() {
+            // Create modal container if it doesn't exist
+            if ($('#imageZoomModal').length === 0) {
+                $('body').append(`
+                    <div class="modal fade zoom-modal" id="imageZoomModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered">
+                            <div class="modal-content">
+                                <div class="modal-body">
+                                    <button type="button" class="btn-close close-btn" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    <img src="" id="zoomedImage" alt="Zoomed product image">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+            
+            // Handle click on product images with zoom-trigger class
+            $(document).on('click', '.zoom-trigger', function(e) {
+                e.preventDefault();
+                
+                // Get the full-size image URL
+                const imageUrl = $(this).attr('src');
+                const productName = $(this).attr('alt');
+                
+                // Set the image in the modal
+                $('#zoomedImage').attr('src', imageUrl);
+                $('#zoomedImage').attr('alt', productName);
+                
+                // Show the modal
+                const zoomModal = new bootstrap.Modal(document.getElementById('imageZoomModal'));
+                zoomModal.show();
+            });
+        });
+    </script>
+</body>
+</html>

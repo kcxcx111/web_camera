@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Checkout | Camera Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-7">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Shipping Details</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" class="needs-validation">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.first_name.id_for_label }}" class="form-label">First Name *</label>
+                            <input type="text" name="first_name" class="form-control {% if form.first_name.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.first_name.id_for_label }}" value="{{ form.first_name.value|default:'' }}" required>
+                            {% if form.first_name.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.first_name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.last_name.id_for_label }}" class="form-label">Last Name *</label>
+                            <input type="text" name="last_name" class="form-control {% if form.last_name.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.last_name.id_for_label }}" value="{{ form.last_name.value|default:'' }}" required>
+                            {% if form.last_name.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.last_name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">Email *</label>
+                            <input type="email" name="email" class="form-control {% if form.email.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.email.id_for_label }}" value="{{ form.email.value|default:'' }}" required>
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.email.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">Phone Number *</label>
+                            <input type="text" name="phone" class="form-control {% if form.phone.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.phone.id_for_label }}" value="{{ form.phone.value|default:'' }}" required>
+                            {% if form.phone.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.phone.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.address.id_for_label }}" class="form-label">Address *</label>
+                        <input type="text" name="address" class="form-control {% if form.address.errors %}is-invalid{% endif %}" 
+                               id="{{ form.address.id_for_label }}" value="{{ form.address.value|default:'' }}" required>
+                        {% if form.address.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.address.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-5 mb-3">
+                            <label for="{{ form.city.id_for_label }}" class="form-label">City *</label>
+                            <input type="text" name="city" class="form-control {% if form.city.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.city.id_for_label }}" value="{{ form.city.value|default:'' }}" required>
+                            {% if form.city.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.city.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.postal_code.id_for_label }}" class="form-label">Postal Code *</label>
+                            <input type="text" name="postal_code" class="form-control {% if form.postal_code.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.postal_code.id_for_label }}" value="{{ form.postal_code.value|default:'' }}" required>
+                            {% if form.postal_code.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.postal_code.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.country.id_for_label }}" class="form-label">Country *</label>
+                            <input type="text" name="country" class="form-control {% if form.country.errors %}is-invalid{% endif %}" 
+                                   id="{{ form.country.id_for_label }}" value="{{ form.country.value|default:'' }}" required>
+                            {% if form.country.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.country.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.note.id_for_label }}" class="form-label">Order Notes (optional)</label>
+                        <textarea name="note" class="form-control {% if form.note.errors %}is-invalid{% endif %}" 
+                                  id="{{ form.note.id_for_label }}" rows="3">{{ form.note.value|default:'' }}</textarea>
+                        {% if form.note.errors %}
+                            <div class="invalid-feedback">
+                                {{ form.note.errors }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <hr class="mb-4">
+                    
+                    <div class="mb-3">
+                        <h4>Payment Method</h4>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="payment_method" id="paymentCash" value="cash" checked>
+                            <label class="form-check-label" for="paymentCash">
+                                Cash on Delivery
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <hr class="mb-4">
+                    
+                    <button class="btn btn-primary btn-lg w-100" type="submit">Place Order</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-5">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h3 class="mb-0">Order Summary</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th class="text-end">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in cart %}
+                                <tr>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.quantity }}</td>
+                                    <td class="text-end">${{ item.total_price }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr>
+                                <th colspan="2">Subtotal</th>
+                                <th class="text-end">${{ cart.get_total_price }}</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2">Shipping</th>
+                                <th class="text-end">Free</th>
+                            </tr>
+                            <tr>
+                                <th colspan="2">Total</th>
+                                <th class="text-end">${{ cart.get_total_price }}</th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
